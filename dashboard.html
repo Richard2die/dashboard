@@ -1,0 +1,2371 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Studio Punto Diritti — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --navy: #0f2542;
+  --navy-mid: #1e3a5f;
+  --navy-light: #2d5282;
+  --navy-surface: #162032;
+  --orange: #f97316;
+  --orange-light: #fb923c;
+  --orange-dark: #ea580c;
+  --orange-muted: rgba(249,115,22,0.12);
+  --gray-50: #f8fafc;
+  --gray-100: #f1f5f9;
+  --gray-200: #e2e8f0;
+  --gray-300: #cbd5e1;
+  --gray-400: #94a3b8;
+  --gray-500: #64748b;
+  --gray-600: #475569;
+  --gray-700: #334155;
+  --gray-800: #1e293b;
+  --gray-900: #0f172a;
+  --white: #ffffff;
+  --success: #059669;
+  --error: #dc2626;
+  --urgent: #dc2626;
+  --sidebar-w: 260px;
+  --topbar-h: 64px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--gray-50);
+  color: var(--gray-800);
+  min-height: 100vh;
+  display: flex;
+}
+
+/* ============================================================
+   SIDEBAR
+============================================================ */
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--navy);
+  min-height: 100vh;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+  transition: transform 0.3s ease;
+}
+
+.sidebar-brand {
+  padding: 24px 20px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.brand-mark {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-icon {
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, var(--orange), var(--orange-dark));
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(249,115,22,0.3);
+}
+
+.brand-icon svg { width: 18px; height: 18px; fill: white; }
+
+.brand-text .name {
+  font-family: 'Playfair Display', serif;
+  font-size: 14px;
+  color: white;
+  line-height: 1.2;
+}
+
+.brand-text .sub {
+  font-size: 10px;
+  color: rgba(255,255,255,0.35);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+/* User info in sidebar */
+.sidebar-user {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.user-avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--orange-muted);
+  border: 2px solid var(--orange);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--orange-light);
+  flex-shrink: 0;
+}
+
+.user-info .user-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+  line-height: 1.2;
+}
+
+.user-info .user-role {
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
+}
+
+/* NAV */
+.sidebar-nav {
+  flex: 1;
+  padding: 16px 12px;
+  overflow-y: auto;
+}
+
+.nav-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.25);
+  padding: 12px 8px 6px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  cursor: pointer;
+  color: rgba(255,255,255,0.55);
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.15s;
+  margin-bottom: 2px;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  text-decoration: none;
+}
+
+.nav-item:hover {
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.85);
+}
+
+.nav-item.active {
+  background: rgba(249,115,22,0.15);
+  color: var(--orange-light);
+}
+
+.nav-item .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+
+.nav-badge {
+  margin-left: auto;
+  background: var(--orange);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+  min-width: 20px;
+  text-align: center;
+}
+
+.urgent-badge { background: var(--urgent); }
+
+/* Sidebar footer */
+.sidebar-footer {
+  padding: 16px 12px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+.btn-logout {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  cursor: pointer;
+  color: rgba(255,255,255,0.4);
+  font-size: 13px;
+  background: none;
+  border: none;
+  width: 100%;
+  transition: all 0.15s;
+}
+
+.btn-logout:hover { color: #fca5a5; background: rgba(220,38,38,0.1); }
+
+/* ============================================================
+   MAIN LAYOUT
+============================================================ */
+.main {
+  margin-left: var(--sidebar-w);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* TOPBAR */
+.topbar {
+  height: var(--topbar-h);
+  background: white;
+  border-bottom: 1px solid var(--gray-200);
+  display: flex;
+  align-items: center;
+  padding: 0 28px;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.topbar-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--navy);
+  flex: 1;
+}
+
+.topbar-date {
+  font-size: 13px;
+  color: var(--gray-400);
+  font-weight: 400;
+}
+
+.btn-menu-mobile {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 22px;
+  color: var(--navy);
+}
+
+.view-toggle {
+  display: flex;
+  background: var(--gray-100);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.view-btn {
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: none;
+  background: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gray-500);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.view-btn.active {
+  background: white;
+  color: var(--navy);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.btn-new-task {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, var(--orange), var(--orange-dark));
+  color: white;
+  border: none;
+  border-radius: 9px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: 0 2px 8px rgba(249,115,22,0.25);
+}
+
+.btn-new-task:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(249,115,22,0.35); }
+
+/* ============================================================
+   CONTENT
+============================================================ */
+.content {
+  flex: 1;
+  padding: 28px;
+}
+
+/* PAGE sections (hidden/visible) */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ============================================================
+   STATS ROW
+============================================================ */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 14px;
+  padding: 20px;
+  border: 1px solid var(--gray-200);
+  transition: box-shadow 0.2s;
+}
+
+.stat-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.07); }
+
+.stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--gray-400);
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--navy);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.stat-sub {
+  font-size: 12px;
+  color: var(--gray-400);
+}
+
+.stat-card.urgent .stat-value { color: var(--urgent); }
+.stat-card.completed .stat-value { color: var(--success); }
+
+/* ============================================================
+   TASK COLUMNS
+============================================================ */
+.tasks-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.tasks-layout.single { grid-template-columns: 1fr; }
+
+.column-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.column-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.column-count {
+  background: var(--gray-100);
+  color: var(--gray-500);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.column-filter {
+  margin-left: auto;
+}
+
+.filter-select {
+  padding: 5px 10px;
+  border: 1px solid var(--gray-200);
+  border-radius: 7px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  color: var(--gray-600);
+  background: white;
+  cursor: pointer;
+}
+
+/* ============================================================
+   TASK CARD
+============================================================ */
+.task-card {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid var(--gray-200);
+  padding: 16px;
+  margin-bottom: 10px;
+  transition: all 0.15s;
+  cursor: default;
+  position: relative;
+  overflow: hidden;
+}
+
+.task-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--category-color, var(--gray-200));
+  border-radius: 3px 0 0 3px;
+}
+
+.task-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); border-color: var(--gray-300); }
+
+.task-card.urgent-card {
+  border-color: rgba(220,38,38,0.2);
+  background: linear-gradient(to right, rgba(220,38,38,0.02), white);
+}
+
+.task-card.urgent-card::before { background: var(--urgent); }
+
+.task-card.completing {
+  opacity: 0.5;
+  transform: scale(0.98);
+  transition: all 0.3s;
+}
+
+.task-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.task-checkbox {
+  width: 18px; height: 18px;
+  border-radius: 5px;
+  border: 2px solid var(--gray-300);
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 2px;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+}
+
+.task-checkbox:hover { border-color: var(--orange); }
+
+.task-title {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gray-800);
+  line-height: 1.4;
+}
+
+.task-actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.task-card:hover .task-actions { opacity: 1; }
+
+.task-action-btn {
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: var(--gray-100);
+  color: var(--gray-500);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  transition: all 0.15s;
+}
+
+.task-action-btn:hover { background: var(--gray-200); color: var(--navy); }
+.task-action-btn.urgent-on:hover { background: rgba(220,38,38,0.1); color: var(--urgent); }
+.task-action-btn.delete:hover { background: rgba(220,38,38,0.1); color: var(--urgent); }
+
+.task-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.task-category {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(var(--cat-rgb), 0.1);
+  color: var(--category-color);
+}
+
+.task-due {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--gray-400);
+  font-weight: 500;
+}
+
+.task-due.overdue { color: var(--urgent); font-weight: 600; }
+.task-due.today { color: var(--orange); font-weight: 600; }
+
+.task-urgent-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(220,38,38,0.1);
+  color: var(--urgent);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.task-assignee {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--gray-400);
+  font-weight: 500;
+}
+
+.task-notes {
+  font-size: 12px;
+  color: var(--gray-500);
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--gray-100);
+  line-height: 1.5;
+}
+
+.recurring-indicator {
+  font-size: 11px;
+  color: var(--navy-light);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--gray-400);
+}
+
+.empty-state .emoji { font-size: 40px; margin-bottom: 12px; }
+.empty-state p { font-size: 14px; }
+
+/* ============================================================
+   WEEK VIEW
+============================================================ */
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 12px;
+}
+
+.week-day {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid var(--gray-200);
+  padding: 12px;
+  min-height: 200px;
+}
+
+.week-day.today-col {
+  border-color: var(--orange);
+  box-shadow: 0 0 0 1px rgba(249,115,22,0.2);
+}
+
+.week-day-header {
+  text-align: center;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.week-day-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gray-400);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.week-day-num {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--navy);
+  line-height: 1.2;
+}
+
+.today-col .week-day-num {
+  color: var(--orange);
+}
+
+.week-task-mini {
+  padding: 6px 8px;
+  border-radius: 7px;
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  border-left: 3px solid var(--category-color, var(--gray-300));
+  background: var(--gray-50);
+  line-height: 1.3;
+  transition: background 0.1s;
+}
+
+.week-task-mini:hover { background: var(--gray-100); }
+.week-task-mini.urgent { background: rgba(220,38,38,0.06); }
+
+/* ============================================================
+   MODAL
+============================================================ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-overlay.open { display: flex; }
+
+.modal {
+  background: white;
+  border-radius: 18px;
+  padding: 32px;
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.2);
+  animation: modalIn 0.25s ease;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.modal-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.modal-close {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: var(--gray-100);
+  color: var(--gray-500);
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.modal-close:hover { background: var(--gray-200); color: var(--gray-800); }
+
+/* Form elements */
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+.form-group { margin-bottom: 18px; }
+
+.form-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-600);
+  margin-bottom: 6px;
+  letter-spacing: 0.3px;
+}
+
+.form-control {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid var(--gray-200);
+  border-radius: 9px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  color: var(--gray-800);
+  background: white;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  outline: none;
+}
+
+.form-control:focus {
+  border-color: var(--orange);
+  box-shadow: 0 0 0 3px rgba(249,115,22,0.08);
+}
+
+textarea.form-control { resize: vertical; min-height: 80px; }
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--gray-200);
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.checkbox-row:hover { border-color: var(--orange); background: var(--orange-muted); }
+
+.checkbox-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--orange); cursor: pointer; }
+
+.checkbox-row label {
+  margin: 0;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--gray-700);
+  font-weight: 500;
+}
+
+.urgent-checkbox-row {
+  border-color: rgba(220,38,38,0.2);
+}
+
+.urgent-checkbox-row:hover { border-color: var(--urgent); background: rgba(220,38,38,0.04); }
+
+.modal-footer {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--gray-100);
+}
+
+.btn-cancel {
+  padding: 10px 20px;
+  border-radius: 9px;
+  border: 1px solid var(--gray-200);
+  background: white;
+  color: var(--gray-600);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-cancel:hover { background: var(--gray-100); }
+
+.btn-save {
+  padding: 10px 24px;
+  border-radius: 9px;
+  border: none;
+  background: linear-gradient(135deg, var(--orange), var(--orange-dark));
+  color: white;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: 0 2px 8px rgba(249,115,22,0.25);
+}
+
+.btn-save:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(249,115,22,0.35); }
+
+/* Recurring fields */
+.recurring-fields { display: none; }
+.recurring-fields.show { display: block; }
+
+/* ============================================================
+   ARCHIVE PAGE
+============================================================ */
+.archive-search {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  align-items: center;
+}
+
+.search-input {
+  flex: 1;
+  padding: 11px 16px 11px 42px;
+  border: 1px solid var(--gray-200);
+  border-radius: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s;
+  position: relative;
+  background: white url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E") no-repeat 14px center;
+}
+
+.search-input:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(249,115,22,0.08); }
+
+.archive-task-card {
+  background: white;
+  border-radius: 10px;
+  border: 1px solid var(--gray-200);
+  padding: 14px 18px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  opacity: 0.75;
+}
+
+.archive-done-icon {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: rgba(5,150,105,0.1);
+  color: var(--success);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.archive-task-title {
+  flex: 1;
+  font-size: 14px;
+  color: var(--gray-600);
+  text-decoration: line-through;
+}
+
+.archive-task-meta {
+  font-size: 11px;
+  color: var(--gray-400);
+  white-space: nowrap;
+}
+
+/* ============================================================
+   RECURRING PAGE
+============================================================ */
+.recurring-card {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid var(--gray-200);
+  padding: 18px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.recurring-icon {
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  background: var(--orange-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.recurring-info { flex: 1; }
+
+.recurring-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: 4px;
+}
+
+.recurring-detail {
+  font-size: 12px;
+  color: var(--gray-400);
+}
+
+.freq-badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(30,58,95,0.08);
+  color: var(--navy-mid);
+  letter-spacing: 0.3px;
+}
+
+/* ============================================================
+   CATEGORIES MANAGEMENT
+============================================================ */
+.cat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.cat-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.cat-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.cat-name { flex: 1; color: var(--gray-700); }
+.cat-type { font-size: 11px; color: var(--gray-400); }
+
+.btn-add-cat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border: 2px dashed var(--gray-300);
+  border-radius: 10px;
+  background: none;
+  color: var(--gray-500);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-add-cat:hover { border-color: var(--orange); color: var(--orange); }
+
+/* ============================================================
+   TOAST
+============================================================ */
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.toast {
+  padding: 12px 18px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: white;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+  animation: slideInRight 0.3s ease;
+  max-width: 320px;
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.toast.success { background: var(--success); }
+.toast.error { background: var(--urgent); }
+.toast.info { background: var(--navy-mid); }
+
+/* ============================================================
+   SECTION HEADERS
+============================================================ */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.page-description {
+  font-size: 13px;
+  color: var(--gray-400);
+  margin-top: 2px;
+}
+
+/* ============================================================
+   LOADING
+============================================================ */
+.loading-overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px;
+  flex-direction: column;
+  gap: 12px;
+  color: var(--gray-400);
+}
+
+.spinner {
+  width: 32px; height: 32px;
+  border: 3px solid var(--gray-200);
+  border-top-color: var(--orange);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ============================================================
+   RESPONSIVE
+============================================================ */
+@media (max-width: 1100px) {
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+  .week-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); }
+  .main { margin-left: 0; }
+  .btn-menu-mobile { display: block; }
+  .tasks-layout { grid-template-columns: 1fr; }
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+  .week-grid { grid-template-columns: repeat(2, 1fr); }
+  .form-row { grid-template-columns: 1fr; }
+  .content { padding: 16px; }
+  .modal { padding: 24px 20px; }
+}
+
+@media (max-width: 480px) {
+  .stats-row { grid-template-columns: 1fr 1fr; }
+  .topbar { padding: 0 16px; gap: 10px; }
+  .topbar-date { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     SIDEBAR
+============================================================ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-mark">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      </div>
+      <div class="brand-text">
+        <div class="name">Studio Punto Diritti</div>
+        <div class="sub">Dashboard</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar-user">
+    <div class="user-avatar" id="sidebarAvatar">--</div>
+    <div class="user-info">
+      <div class="user-name" id="sidebarName">Caricamento...</div>
+      <div class="user-role" id="sidebarRole">Studio</div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Impegni</div>
+    <button class="nav-item active" onclick="showPage('oggi')">
+      <span class="nav-icon">📋</span> Oggi
+      <span class="nav-badge urgent-badge" id="urgentCount" style="display:none">0</span>
+    </button>
+    <button class="nav-item" onclick="showPage('settimana')">
+      <span class="nav-icon">📅</span> Settimana
+    </button>
+    <button class="nav-item" onclick="showPage('studio')">
+      <span class="nav-icon">🏢</span> Tutto lo Studio
+    </button>
+
+    <div class="nav-section-label" style="margin-top:8px">Gestione</div>
+    <button class="nav-item" onclick="showPage('ricorrenti')">
+      <span class="nav-icon">🔄</span> Ricorrenti
+    </button>
+    <button class="nav-item" onclick="showPage('archivio')">
+      <span class="nav-icon">📁</span> Archivio
+    </button>
+    <button class="nav-item" onclick="showPage('categorie')">
+      <span class="nav-icon">🏷️</span> Categorie
+    </button>
+  </nav>
+
+  <div class="sidebar-footer">
+    <button class="btn-logout" onclick="handleLogout()">
+      <span>⎋</span> Esci dall'account
+    </button>
+  </div>
+</aside>
+
+<!-- Overlay mobile -->
+<div id="mobileOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99" onclick="closeSidebar()"></div>
+
+<!-- ============================================================
+     MAIN
+============================================================ -->
+<main class="main">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <button class="btn-menu-mobile" onclick="toggleSidebar()">☰</button>
+    <div>
+      <div class="topbar-title" id="topbarTitle">Impegni di Oggi</div>
+      <div class="topbar-date" id="topbarDate"></div>
+    </div>
+    <div class="view-toggle" id="viewToggle" style="display:none">
+      <button class="view-btn active" onclick="setDayView()" id="dayViewBtn">Giorno</button>
+      <button class="view-btn" onclick="setWeekView()" id="weekViewBtn">Settimana</button>
+    </div>
+    <button class="btn-new-task" id="newTaskBtn" onclick="openNewTaskModal()">
+      <span>＋</span> Nuovo Impegno
+    </button>
+  </header>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- ========== PAGE: OGGI ========== -->
+    <div class="page active" id="page-oggi">
+      <div class="stats-row" id="statsRow">
+        <div class="stat-card">
+          <div class="stat-label">Impegni Oggi</div>
+          <div class="stat-value" id="statToday">—</div>
+          <div class="stat-sub">aperti</div>
+        </div>
+        <div class="stat-card urgent">
+          <div class="stat-label">🔴 Urgenti</div>
+          <div class="stat-value" id="statUrgent">—</div>
+          <div class="stat-sub">da gestire subito</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">In Scadenza</div>
+          <div class="stat-value" id="statDueSoon">—</div>
+          <div class="stat-sub">entro 3 giorni</div>
+        </div>
+        <div class="stat-card completed">
+          <div class="stat-label">Completati</div>
+          <div class="stat-value" id="statCompleted">—</div>
+          <div class="stat-sub">questa settimana</div>
+        </div>
+      </div>
+
+      <div class="tasks-layout" id="todayLayout">
+        <!-- Miei impegni oggi -->
+        <div>
+          <div class="column-header">
+            <div class="column-title">I Miei Impegni</div>
+            <span class="column-count" id="myTodayCount">0</span>
+            <div class="column-filter">
+              <select class="filter-select" onchange="filterMyTasks(this.value)" id="myFilterSelect">
+                <option value="all">Tutti</option>
+                <option value="urgent">Solo urgenti</option>
+              </select>
+            </div>
+          </div>
+          <div id="myTasksList">
+            <div class="loading-overlay"><div class="spinner"></div><span>Caricamento...</span></div>
+          </div>
+        </div>
+
+        <!-- Impegni studio oggi -->
+        <div>
+          <div class="column-header">
+            <div class="column-title">Studio — Impegni del Giorno</div>
+            <span class="column-count" id="studioTodayCount">0</span>
+            <div class="column-filter">
+              <select class="filter-select" onchange="filterStudioTasks(this.value)" id="studioFilterSelect">
+                <option value="all">Tutti</option>
+                <option value="urgent">Solo urgenti</option>
+              </select>
+            </div>
+          </div>
+          <div id="studioTasksList">
+            <div class="loading-overlay"><div class="spinner"></div><span>Caricamento...</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== PAGE: SETTIMANA ========== -->
+    <div class="page" id="page-settimana">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Vista Settimanale</div>
+          <div class="page-description" id="weekRangeLabel"></div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-cancel" onclick="changeWeek(-1)">← Prec.</button>
+          <button class="btn-cancel" onclick="changeWeek(0)">Oggi</button>
+          <button class="btn-cancel" onclick="changeWeek(1)">Succ. →</button>
+        </div>
+      </div>
+      <div class="week-grid" id="weekGrid"></div>
+    </div>
+
+    <!-- ========== PAGE: TUTTO LO STUDIO ========== -->
+    <div class="page" id="page-studio">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Impegni di tutto lo Studio</div>
+          <div class="page-description">Visibilità completa su tutti i collaboratori</div>
+        </div>
+        <select class="filter-select" onchange="filterAllTasks(this.value)" style="padding:8px 14px">
+          <option value="all">Tutti gli utenti</option>
+        </select>
+      </div>
+      <div id="allTasksList">
+        <div class="loading-overlay"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- ========== PAGE: RICORRENTI ========== -->
+    <div class="page" id="page-ricorrenti">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Attività Ricorrenti</div>
+          <div class="page-description">Impegni che si ripetono automaticamente</div>
+        </div>
+        <button class="btn-new-task" onclick="openNewRecurringModal()">＋ Nuova Ricorrente</button>
+      </div>
+      <div id="recurringList">
+        <div class="loading-overlay"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- ========== PAGE: ARCHIVIO ========== -->
+    <div class="page" id="page-archivio">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Archivio Impegni Completati</div>
+          <div class="page-description">Ricerca tra tutti gli impegni conclusi</div>
+        </div>
+      </div>
+      <div class="archive-search">
+        <input type="text" class="search-input" placeholder="Cerca per titolo, categoria, utente..." id="archiveSearch" oninput="searchArchive(this.value)">
+        <select class="filter-select" style="padding:11px 14px" onchange="filterArchive(this.value)" id="archivePeriod">
+          <option value="30">Ultimi 30 giorni</option>
+          <option value="90">Ultimi 3 mesi</option>
+          <option value="365">Ultimo anno</option>
+          <option value="0">Tutti</option>
+        </select>
+      </div>
+      <div id="archiveList">
+        <div class="loading-overlay"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- ========== PAGE: CATEGORIE ========== -->
+    <div class="page" id="page-categorie">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Gestione Categorie</div>
+          <div class="page-description">Categorie globali dello studio + le tue personali</div>
+        </div>
+      </div>
+      <div id="categoriesGlobal" class="cat-grid"></div>
+      <div style="margin:24px 0 12px">
+        <div class="section-title" style="font-size:14px">Le Mie Categorie</div>
+      </div>
+      <div id="categoriesPersonal" class="cat-grid"></div>
+      <button class="btn-add-cat" onclick="openCategoryModal()">＋ Aggiungi categoria personale</button>
+    </div>
+
+  </div><!-- /content -->
+</main>
+
+<!-- ============================================================
+     MODAL NUOVO TASK
+============================================================ -->
+<div class="modal-overlay" id="taskModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="taskModalTitle">Nuovo Impegno</div>
+      <button class="modal-close" onclick="closeTaskModal()">✕</button>
+    </div>
+
+    <div class="form-group">
+      <label>Titolo *</label>
+      <input type="text" class="form-control" id="taskTitle" placeholder="Descrizione dell'impegno...">
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Categoria</label>
+        <select class="form-control" id="taskCategory">
+          <option value="">— Seleziona —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Assegna a</label>
+        <select class="form-control" id="taskAssignee">
+          <option value="">Studio (visibile a tutti)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Scadenza</label>
+        <input type="date" class="form-control" id="taskDueDate">
+      </div>
+      <div class="form-group">
+        <label>Ora</label>
+        <input type="time" class="form-control" id="taskDueTime">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Note</label>
+      <textarea class="form-control" id="taskNotes" placeholder="Informazioni aggiuntive..."></textarea>
+    </div>
+
+    <div class="checkbox-row urgent-checkbox-row">
+      <input type="checkbox" id="taskUrgent">
+      <label for="taskUrgent">🔴 Marca come URGENTE</label>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeTaskModal()">Annulla</button>
+      <button class="btn-save" onclick="saveTask()" id="saveTaskBtn">Salva Impegno</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL NUOVA RICORRENTE
+============================================================ -->
+<div class="modal-overlay" id="recurringModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Nuova Attività Ricorrente</div>
+      <button class="modal-close" onclick="closeRecurringModal()">✕</button>
+    </div>
+
+    <div class="form-group">
+      <label>Titolo *</label>
+      <input type="text" class="form-control" id="recTitle" placeholder="Es. Invio F24 mensile">
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Categoria</label>
+        <select class="form-control" id="recCategory">
+          <option value="">— Seleziona —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Frequenza *</label>
+        <select class="form-control" id="recFrequency" onchange="updateRecurringFields()">
+          <option value="daily">Giornaliera</option>
+          <option value="weekly">Settimanale</option>
+          <option value="monthly">Mensile</option>
+          <option value="yearly">Annuale</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Campi dinamici per frequenza -->
+    <div class="form-group" id="recWeeklyField" style="display:none">
+      <label>Giorno della settimana</label>
+      <select class="form-control" id="recDayOfWeek">
+        <option value="1">Lunedì</option>
+        <option value="2">Martedì</option>
+        <option value="3">Mercoledì</option>
+        <option value="4">Giovedì</option>
+        <option value="5">Venerdì</option>
+        <option value="6">Sabato</option>
+        <option value="0">Domenica</option>
+      </select>
+    </div>
+
+    <div class="form-row" id="recMonthlyField" style="display:none">
+      <div class="form-group">
+        <label>Giorno del mese</label>
+        <input type="number" class="form-control" id="recDayOfMonth" min="1" max="31" placeholder="Es. 16">
+      </div>
+    </div>
+
+    <div class="form-row" id="recYearlyField" style="display:none">
+      <div class="form-group">
+        <label>Mese</label>
+        <select class="form-control" id="recMonth">
+          <option value="1">Gennaio</option><option value="2">Febbraio</option>
+          <option value="3">Marzo</option><option value="4">Aprile</option>
+          <option value="5">Maggio</option><option value="6">Giugno</option>
+          <option value="7">Luglio</option><option value="8">Agosto</option>
+          <option value="9">Settembre</option><option value="10">Ottobre</option>
+          <option value="11">Novembre</option><option value="12">Dicembre</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Giorno</label>
+        <input type="number" class="form-control" id="recYearlyDay" min="1" max="31" placeholder="Es. 30">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Ora di scadenza</label>
+        <input type="time" class="form-control" id="recDueTime">
+      </div>
+      <div class="form-group">
+        <label>Assegna a</label>
+        <select class="form-control" id="recAssignee">
+          <option value="">Studio</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Note</label>
+      <textarea class="form-control" id="recNotes" placeholder="Dettagli aggiuntivi..."></textarea>
+    </div>
+
+    <div class="checkbox-row urgent-checkbox-row">
+      <input type="checkbox" id="recUrgent">
+      <label for="recUrgent">🔴 Sempre urgente</label>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeRecurringModal()">Annulla</button>
+      <button class="btn-save" onclick="saveRecurring()">Salva Ricorrente</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL CATEGORIA
+============================================================ -->
+<div class="modal-overlay" id="categoryModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <div class="modal-title">Nuova Categoria</div>
+      <button class="modal-close" onclick="closeCategoryModal()">✕</button>
+    </div>
+    <div class="form-group">
+      <label>Nome categoria *</label>
+      <input type="text" class="form-control" id="catName" placeholder="Es. Pensionistica">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Colore</label>
+        <input type="color" class="form-control" id="catColor" value="#1e3a5f" style="height:44px;padding:4px 8px;cursor:pointer">
+      </div>
+      <div class="form-group">
+        <label>Icona (emoji)</label>
+        <input type="text" class="form-control" id="catIcon" placeholder="📋" maxlength="4">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeCategoryModal()">Annulla</button>
+      <button class="btn-save" onclick="saveCategory()">Salva</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ============================================================
+     JAVASCRIPT
+============================================================ -->
+<script>
+// ============================================================
+// CONFIGURAZIONE SUPABASE
+// ============================================================
+const SUPABASE_URL = 'https://irwiirstptywhpgiuqrt.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlyd2lpcnN0cHR5d2hwZ2l1cXJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4OTg5MzIsImV4cCI6MjA5MDQ3NDkzMn0.HV9LRV1FGZJ3XgUXPpjE4KbEnda_TsKgvXAOKTp7Q34';
+
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ============================================================
+// STATO GLOBALE
+// ============================================================
+let currentUser = null;
+let currentProfile = null;
+let allProfiles = [];
+let categories = [];
+let currentPage = 'oggi';
+let currentWeekOffset = 0;
+let editingTaskId = null;
+
+const DAYS_IT = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'];
+const MONTHS_IT = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+const FREQ_LABELS = { daily:'Giornaliera', weekly:'Settimanale', monthly:'Mensile', yearly:'Annuale' };
+
+// ============================================================
+// INIT
+// ============================================================
+async function init() {
+  // Controlla auth
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { window.location.href = 'index.html'; return; }
+  currentUser = session.user;
+
+  // Carica profilo e dati
+  await loadProfile();
+  await loadProfiles();
+  await loadCategories();
+  await generateRecurringTasks();
+
+  // Aggiorna topbar
+  updateTopbarDate();
+
+  // Carica pagina iniziale
+  await loadTodayPage();
+}
+
+async function loadProfile() {
+  const { data } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
+  currentProfile = data;
+  if (data) {
+    document.getElementById('sidebarName').textContent = data.display_name || data.full_name;
+    document.getElementById('sidebarRole').textContent = data.role === 'admin' ? 'Amministratore' : 'Collaboratore';
+    const initials = (data.full_name || '??').split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
+    document.getElementById('sidebarAvatar').textContent = initials;
+  }
+}
+
+async function loadProfiles() {
+  const { data } = await sb.from('profiles').select('*').order('full_name');
+  allProfiles = data || [];
+}
+
+async function loadCategories() {
+  const { data } = await sb.from('categories').select('*').or(`is_global.eq.true,created_by.eq.${currentUser.id}`).order('name');
+  categories = data || [];
+}
+
+// ============================================================
+// GENERAZIONE TASK RICORRENTI
+// ============================================================
+async function generateRecurringTasks() {
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const todayStr = formatDate(today);
+
+  const { data: templates } = await sb.from('recurring_templates').select('*').eq('is_active', true);
+  if (!templates) return;
+
+  for (const t of templates) {
+    const shouldGenerate = checkShouldGenerate(t, today);
+    if (!shouldGenerate) continue;
+
+    // Controlla se già generato oggi
+    const { data: existing } = await sb.from('tasks')
+      .select('id')
+      .eq('recurring_template_id', t.id)
+      .eq('due_date', todayStr)
+      .maybeSingle();
+
+    if (existing) continue;
+
+    // Crea il task
+    await sb.from('tasks').insert({
+      title: t.title,
+      description: t.description,
+      category_id: t.category_id,
+      assigned_to: t.assigned_to,
+      created_by: t.created_by,
+      due_date: todayStr,
+      due_time: t.due_time,
+      is_urgent: t.is_urgent,
+      visibility: t.visibility,
+      notes: t.notes,
+      recurring_template_id: t.id
+    });
+
+    // Aggiorna last_generated
+    await sb.from('recurring_templates').update({ last_generated: todayStr }).eq('id', t.id);
+  }
+}
+
+function checkShouldGenerate(template, today) {
+  const dow = today.getDay(); // 0=Dom
+  const dom = today.getDate();
+  const month = today.getMonth() + 1;
+
+  switch (template.frequency) {
+    case 'daily': return true;
+    case 'weekly': return template.day_of_week === dow;
+    case 'monthly': return template.day_of_month === dom;
+    case 'yearly': return template.month_of_year === month && template.day_of_month === dom;
+    default: return false;
+  }
+}
+
+// ============================================================
+// NAVIGAZIONE PAGINE
+// ============================================================
+async function showPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  event.currentTarget.classList.add('active');
+  currentPage = page;
+
+  const titles = {
+    oggi: 'Impegni di Oggi',
+    settimana: 'Vista Settimanale',
+    studio: 'Tutto lo Studio',
+    ricorrenti: 'Attività Ricorrenti',
+    archivio: 'Archivio',
+    categorie: 'Gestione Categorie'
+  };
+
+  document.getElementById('topbarTitle').textContent = titles[page] || '';
+  document.getElementById('viewToggle').style.display = page === 'oggi' ? 'flex' : 'none';
+  document.getElementById('newTaskBtn').style.display = ['ricorrenti','archivio','categorie'].includes(page) ? 'none' : 'flex';
+
+  closeSidebar();
+
+  switch(page) {
+    case 'oggi': await loadTodayPage(); break;
+    case 'settimana': await loadWeekPage(); break;
+    case 'studio': await loadStudioPage(); break;
+    case 'ricorrenti': await loadRecurringPage(); break;
+    case 'archivio': await loadArchivePage(); break;
+    case 'categorie': await loadCategoriesPage(); break;
+  }
+}
+
+// ============================================================
+// PAGE: OGGI
+// ============================================================
+async function loadTodayPage() {
+  const today = formatDate(new Date());
+
+  // Impegni miei oggi
+  const { data: myTasks } = await sb.from('tasks_detailed')
+    .select('*')
+    .eq('is_completed', false)
+    .eq('created_by', currentUser.id)
+    .eq('due_date', today)
+    .order('is_urgent', { ascending: false })
+    .order('due_time', { ascending: true, nullsFirst: false });
+
+  // Impegni studio oggi (esclusi i miei personali altrui)
+  const { data: studioTasks } = await sb.from('tasks_detailed')
+    .select('*')
+    .eq('is_completed', false)
+    .eq('visibility', 'studio')
+    .neq('created_by', currentUser.id)
+    .eq('due_date', today)
+    .order('is_urgent', { ascending: false });
+
+  // Stats
+  const { data: urgentAll } = await sb.from('tasks').select('id').eq('is_completed', false).eq('is_urgent', true);
+  const { data: dueSoon } = await sb.from('tasks').select('id').eq('is_completed', false)
+    .gte('due_date', today)
+    .lte('due_date', formatDate(addDays(new Date(), 3)));
+
+  const weekStart = formatDate(startOfWeek(new Date()));
+  const { data: completedWeek } = await sb.from('tasks').select('id').eq('is_completed', true)
+    .gte('completed_at', weekStart + 'T00:00:00');
+
+  document.getElementById('statToday').textContent = (myTasks?.length || 0) + (studioTasks?.length || 0);
+  document.getElementById('statUrgent').textContent = urgentAll?.length || 0;
+  document.getElementById('statDueSoon').textContent = dueSoon?.length || 0;
+  document.getElementById('statCompleted').textContent = completedWeek?.length || 0;
+
+  const urgentCount = urgentAll?.length || 0;
+  const urgentBadge = document.getElementById('urgentCount');
+  urgentBadge.textContent = urgentCount;
+  urgentBadge.style.display = urgentCount > 0 ? 'inline' : 'none';
+
+  document.getElementById('myTodayCount').textContent = myTasks?.length || 0;
+  document.getElementById('studioTodayCount').textContent = studioTasks?.length || 0;
+
+  renderTaskList('myTasksList', myTasks || [], true);
+  renderTaskList('studioTasksList', studioTasks || [], false);
+}
+
+function renderTaskList(containerId, tasks, isOwner) {
+  const container = document.getElementById(containerId);
+  if (!tasks.length) {
+    container.innerHTML = `<div class="empty-state"><div class="emoji">✅</div><p>Nessun impegno per oggi</p></div>`;
+    return;
+  }
+  container.innerHTML = tasks.map(t => renderTaskCard(t, isOwner)).join('');
+}
+
+function renderTaskCard(task, isOwner) {
+  const catColor = task.category_color || '#94a3b8';
+  const catIcon = task.category_icon || '📋';
+  const catName = task.category_name || 'Senza categoria';
+  const dueLabel = formatDueLabel(task.due_date, task.due_time);
+  const dueClass = getDueClass(task.due_date);
+  const assigneeName = task.assigned_display || task.assigned_name || '';
+  const assigneeDisplay = task.assigned_to ? (task.assigned_to === currentUser.id ? 'Tu' : task.assigned_display || task.assigned_name || '') : 'Studio';
+  const creatorLabel = !isOwner ? `<span class="task-assignee">👤 ${task.creator_display || task.creator_name}</span>` : '';
+  const recurringIcon = task.recurring_template_id ? '<span class="recurring-indicator" title="Ricorrente">🔄</span>' : '';
+
+  return `
+  <div class="task-card ${task.is_urgent ? 'urgent-card' : ''}" id="task-${task.id}" style="--category-color:${catColor}">
+    <div class="task-top">
+      ${isOwner ? `<div class="task-checkbox" onclick="completeTask('${task.id}')" title="Segna come completato">✓</div>` : '<div style="width:18px"></div>'}
+      <div class="task-title">${escHtml(task.title)}</div>
+      ${isOwner ? `
+      <div class="task-actions">
+        <button class="task-action-btn" onclick="toggleUrgent('${task.id}', ${task.is_urgent})" title="${task.is_urgent ? 'Rimuovi urgenza' : 'Segna urgente'}">
+          ${task.is_urgent ? '🔔' : '🔕'}
+        </button>
+        <button class="task-action-btn" onclick="openEditTask('${task.id}')" title="Modifica">✏️</button>
+        <button class="task-action-btn delete" onclick="deleteTask('${task.id}')" title="Elimina">🗑️</button>
+      </div>` : ''}
+    </div>
+    <div class="task-meta">
+      <span class="task-category" style="--category-color:${catColor}">${catIcon} ${escHtml(catName)}</span>
+      ${task.is_urgent ? '<span class="task-urgent-badge">🔴 Urgente</span>' : ''}
+      ${dueLabel ? `<span class="task-due ${dueClass}">📅 ${dueLabel}</span>` : ''}
+      ${recurringIcon}
+      ${creatorLabel}
+    </div>
+    ${task.notes ? `<div class="task-notes">${escHtml(task.notes)}</div>` : ''}
+  </div>`;
+}
+
+// ============================================================
+// COMPLETAMENTO TASK
+// ============================================================
+async function completeTask(taskId) {
+  const card = document.getElementById('task-' + taskId);
+  card.classList.add('completing');
+
+  setTimeout(async () => {
+    await sb.from('tasks').update({
+      is_completed: true,
+      completed_at: new Date().toISOString(),
+      completed_by: currentUser.id
+    }).eq('id', taskId);
+
+    showToast('Impegno completato! ✅', 'success');
+    await loadTodayPage();
+  }, 350);
+}
+
+async function toggleUrgent(taskId, isCurrentlyUrgent) {
+  await sb.from('tasks').update({ is_urgent: !isCurrentlyUrgent }).eq('id', taskId);
+  showToast(isCurrentlyUrgent ? 'Urgenza rimossa' : '🔴 Segnato urgente', 'info');
+  if (currentPage === 'oggi') await loadTodayPage();
+  else if (currentPage === 'studio') await loadStudioPage();
+}
+
+async function deleteTask(taskId) {
+  if (!confirm('Eliminare questo impegno?')) return;
+  await sb.from('tasks').delete().eq('id', taskId);
+  showToast('Impegno eliminato', 'info');
+  if (currentPage === 'oggi') await loadTodayPage();
+  else if (currentPage === 'studio') await loadStudioPage();
+}
+
+// ============================================================
+// FILTRI
+// ============================================================
+function filterMyTasks(value) {
+  const cards = document.querySelectorAll('#myTasksList .task-card');
+  cards.forEach(card => {
+    if (value === 'urgent') card.style.display = card.classList.contains('urgent-card') ? '' : 'none';
+    else card.style.display = '';
+  });
+}
+
+function filterStudioTasks(value) {
+  const cards = document.querySelectorAll('#studioTasksList .task-card');
+  cards.forEach(card => {
+    if (value === 'urgent') card.style.display = card.classList.contains('urgent-card') ? '' : 'none';
+    else card.style.display = '';
+  });
+}
+
+// ============================================================
+// PAGE: SETTIMANA
+// ============================================================
+async function loadWeekPage() {
+  const base = new Date();
+  base.setDate(base.getDate() + currentWeekOffset * 7);
+  const start = startOfWeek(base);
+
+  const days = Array.from({length:7}, (_,i) => addDays(start, i));
+  const startStr = formatDate(days[0]);
+  const endStr = formatDate(days[6]);
+
+  document.getElementById('weekRangeLabel').textContent =
+    `${days[0].getDate()} ${MONTHS_IT[days[0].getMonth()]} — ${days[6].getDate()} ${MONTHS_IT[days[6].getMonth()]} ${days[6].getFullYear()}`;
+
+  const { data: tasks } = await sb.from('tasks_detailed').select('*')
+    .eq('is_completed', false)
+    .gte('due_date', startStr)
+    .lte('due_date', endStr)
+    .order('due_time', { ascending: true });
+
+  const todayStr = formatDate(new Date());
+  const grid = document.getElementById('weekGrid');
+
+  grid.innerHTML = days.map(day => {
+    const dayStr = formatDate(day);
+    const dayTasks = (tasks || []).filter(t => t.due_date === dayStr);
+    const isToday = dayStr === todayStr;
+
+    return `
+    <div class="week-day ${isToday ? 'today-col' : ''}">
+      <div class="week-day-header">
+        <div class="week-day-name">${DAYS_IT[day.getDay()]}</div>
+        <div class="week-day-num">${day.getDate()}</div>
+      </div>
+      ${dayTasks.length === 0 ? '<div style="text-align:center;padding:20px 0;color:var(--gray-300);font-size:13px">—</div>' :
+        dayTasks.map(t => `
+        <div class="week-task-mini ${t.is_urgent ? 'urgent' : ''}" style="--category-color:${t.category_color || '#94a3b8'}" title="${escHtml(t.title)}">
+          ${t.is_urgent ? '🔴 ' : ''}${escHtml(t.title)}
+        </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+function changeWeek(dir) {
+  if (dir === 0) currentWeekOffset = 0;
+  else currentWeekOffset += dir;
+  loadWeekPage();
+}
+
+// ============================================================
+// PAGE: TUTTO LO STUDIO
+// ============================================================
+async function loadStudioPage() {
+  const today = formatDate(new Date());
+
+  const { data: tasks } = await sb.from('tasks_detailed').select('*')
+    .eq('is_completed', false)
+    .order('due_date', { ascending: true })
+    .order('is_urgent', { ascending: false });
+
+  // Popola filtro utenti
+  const sel = document.querySelector('#page-studio select');
+  if (allProfiles.length > 0) {
+    const opts = allProfiles.map(p => `<option value="${p.id}">${p.display_name || p.full_name}</option>`).join('');
+    sel.innerHTML = '<option value="all">Tutti gli utenti</option>' + opts;
+  }
+
+  renderAllTasks(tasks || []);
+}
+
+function renderAllTasks(tasks) {
+  const container = document.getElementById('allTasksList');
+  if (!tasks.length) {
+    container.innerHTML = `<div class="empty-state"><div class="emoji">🎉</div><p>Nessun impegno aperto</p></div>`;
+    return;
+  }
+
+  // Raggruppa per utente
+  const byUser = {};
+  tasks.forEach(t => {
+    const key = t.created_by;
+    if (!byUser[key]) byUser[key] = { name: t.creator_display || t.creator_name || 'Sconosciuto', tasks: [] };
+    byUser[key].tasks.push(t);
+  });
+
+  container.innerHTML = Object.entries(byUser).map(([uid, group]) => `
+    <div style="margin-bottom:28px">
+      <div class="column-header">
+        <div class="column-title">👤 ${escHtml(group.name)}</div>
+        <span class="column-count">${group.tasks.length}</span>
+      </div>
+      ${group.tasks.map(t => renderTaskCard(t, uid === currentUser.id)).join('')}
+    </div>
+  `).join('');
+}
+
+async function filterAllTasks(userId) {
+  if (userId === 'all') { await loadStudioPage(); return; }
+
+  const { data: tasks } = await sb.from('tasks_detailed').select('*')
+    .eq('is_completed', false)
+    .eq('created_by', userId)
+    .order('is_urgent', { ascending: false });
+
+  renderAllTasks(tasks || []);
+}
+
+// ============================================================
+// PAGE: RICORRENTI
+// ============================================================
+async function loadRecurringPage() {
+  const { data: templates } = await sb.from('recurring_templates').select(`
+    *, categories(name,color,icon)
+  `).order('frequency');
+
+  const container = document.getElementById('recurringList');
+
+  if (!templates?.length) {
+    container.innerHTML = `<div class="empty-state"><div class="emoji">🔄</div><p>Nessuna attività ricorrente configurata</p></div>`;
+    return;
+  }
+
+  container.innerHTML = templates.map(t => {
+    const cat = t.categories || {};
+    const freqDetail = getFreqDetail(t);
+    const isOwner = t.created_by === currentUser.id;
+
+    return `
+    <div class="recurring-card">
+      <div class="recurring-icon">${cat.icon || '🔄'}</div>
+      <div class="recurring-info">
+        <div class="recurring-title">${escHtml(t.title)}</div>
+        <div class="recurring-detail">${escHtml(cat.name || 'Senza categoria')} · ${freqDetail}${t.due_time ? ' · ' + t.due_time.slice(0,5) : ''}${t.is_urgent ? ' · 🔴 Urgente' : ''}</div>
+      </div>
+      <span class="freq-badge">${FREQ_LABELS[t.frequency]}</span>
+      ${isOwner ? `
+      <button class="task-action-btn" onclick="deleteRecurring('${t.id}')" title="Elimina" style="opacity:1">🗑️</button>
+      ` : ''}
+    </div>`;
+  }).join('');
+}
+
+function getFreqDetail(t) {
+  switch(t.frequency) {
+    case 'daily': return 'Ogni giorno';
+    case 'weekly': return 'Ogni ' + ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'][t.day_of_week || 1];
+    case 'monthly': return `Il giorno ${t.day_of_month} di ogni mese`;
+    case 'yearly': return `${t.day_of_month} ${MONTHS_IT[(t.month_of_year||1)-1]} ogni anno`;
+    default: return '';
+  }
+}
+
+async function deleteRecurring(id) {
+  if (!confirm('Eliminare questa attività ricorrente? I task già generati non verranno eliminati.')) return;
+  await sb.from('recurring_templates').delete().eq('id', id);
+  showToast('Attività ricorrente eliminata', 'info');
+  await loadRecurringPage();
+}
+
+// ============================================================
+// PAGE: ARCHIVIO
+// ============================================================
+let archiveTasks = [];
+
+async function loadArchivePage() {
+  const days = parseInt(document.getElementById('archivePeriod').value) || 30;
+  let query = sb.from('tasks_detailed').select('*').eq('is_completed', true).order('completed_at', { ascending: false });
+
+  if (days > 0) {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+    query = query.gte('completed_at', cutoff.toISOString());
+  }
+
+  const { data } = await query;
+  archiveTasks = data || [];
+  renderArchive(archiveTasks);
+}
+
+function renderArchive(tasks) {
+  const container = document.getElementById('archiveList');
+  if (!tasks.length) {
+    container.innerHTML = `<div class="empty-state"><div class="emoji">📁</div><p>Nessun impegno trovato</p></div>`;
+    return;
+  }
+  container.innerHTML = tasks.map(t => `
+    <div class="archive-task-card">
+      <div class="archive-done-icon">✓</div>
+      <div>
+        <div class="archive-task-title">${escHtml(t.title)}</div>
+        <div style="font-size:11px;color:var(--gray-400);margin-top:3px">${t.category_icon||'📋'} ${t.category_name||'—'}</div>
+      </div>
+      <div class="archive-task-meta">
+        <div>${t.creator_display || t.creator_name || '—'}</div>
+        <div style="margin-top:2px">${t.completed_at ? formatDateIt(new Date(t.completed_at)) : '—'}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function searchArchive(query) {
+  if (!query) { renderArchive(archiveTasks); return; }
+  const q = query.toLowerCase();
+  const filtered = archiveTasks.filter(t =>
+    t.title?.toLowerCase().includes(q) ||
+    t.category_name?.toLowerCase().includes(q) ||
+    t.creator_name?.toLowerCase().includes(q)
+  );
+  renderArchive(filtered);
+}
+
+function filterArchive(days) {
+  loadArchivePage();
+}
+
+// ============================================================
+// PAGE: CATEGORIE
+// ============================================================
+async function loadCategoriesPage() {
+  const globalCats = categories.filter(c => c.is_global);
+  const personalCats = categories.filter(c => !c.is_global && c.created_by === currentUser.id);
+
+  document.getElementById('categoriesGlobal').innerHTML = globalCats.map(c => `
+    <div class="cat-chip">
+      <div class="cat-dot" style="background:${c.color}"></div>
+      <span style="font-size:16px">${c.icon}</span>
+      <span class="cat-name">${escHtml(c.name)}</span>
+      <span class="cat-type">Studio</span>
+    </div>
+  `).join('') || '<p style="color:var(--gray-400);font-size:13px">Nessuna categoria globale</p>';
+
+  document.getElementById('categoriesPersonal').innerHTML = personalCats.map(c => `
+    <div class="cat-chip">
+      <div class="cat-dot" style="background:${c.color}"></div>
+      <span style="font-size:16px">${c.icon}</span>
+      <span class="cat-name">${escHtml(c.name)}</span>
+      <button style="margin-left:auto;background:none;border:none;cursor:pointer;color:var(--gray-400);font-size:14px" onclick="deleteCategory('${c.id}')">✕</button>
+    </div>
+  `).join('') || '<p style="color:var(--gray-400);font-size:13px;margin-bottom:12px">Nessuna categoria personale</p>';
+}
+
+async function deleteCategory(id) {
+  if (!confirm('Eliminare questa categoria?')) return;
+  await sb.from('categories').delete().eq('id', id);
+  await loadCategories();
+  await loadCategoriesPage();
+  showToast('Categoria eliminata', 'info');
+}
+
+// ============================================================
+// MODAL TASK
+// ============================================================
+function openNewTaskModal() {
+  editingTaskId = null;
+  document.getElementById('taskModalTitle').textContent = 'Nuovo Impegno';
+  document.getElementById('taskTitle').value = '';
+  document.getElementById('taskNotes').value = '';
+  document.getElementById('taskUrgent').checked = false;
+  document.getElementById('taskDueDate').value = formatDate(new Date());
+  document.getElementById('taskDueTime').value = '';
+
+  populateCategorySelect('taskCategory');
+  populateAssigneeSelect('taskAssignee');
+
+  document.getElementById('taskModal').classList.add('open');
+  setTimeout(() => document.getElementById('taskTitle').focus(), 100);
+}
+
+async function openEditTask(taskId) {
+  const { data: task } = await sb.from('tasks').select('*').eq('id', taskId).single();
+  if (!task) return;
+
+  editingTaskId = taskId;
+  document.getElementById('taskModalTitle').textContent = 'Modifica Impegno';
+  document.getElementById('taskTitle').value = task.title;
+  document.getElementById('taskNotes').value = task.notes || '';
+  document.getElementById('taskUrgent').checked = task.is_urgent;
+  document.getElementById('taskDueDate').value = task.due_date || '';
+  document.getElementById('taskDueTime').value = task.due_time ? task.due_time.slice(0,5) : '';
+
+  populateCategorySelect('taskCategory', task.category_id);
+  populateAssigneeSelect('taskAssignee', task.assigned_to);
+
+  document.getElementById('taskModal').classList.add('open');
+}
+
+function closeTaskModal() {
+  document.getElementById('taskModal').classList.remove('open');
+  editingTaskId = null;
+}
+
+async function saveTask() {
+  const title = document.getElementById('taskTitle').value.trim();
+  if (!title) { showToast('Inserisci un titolo', 'error'); return; }
+
+  const btn = document.getElementById('saveTaskBtn');
+  btn.textContent = 'Salvataggio...';
+  btn.disabled = true;
+
+  const payload = {
+    title,
+    notes: document.getElementById('taskNotes').value.trim() || null,
+    category_id: document.getElementById('taskCategory').value || null,
+    assigned_to: document.getElementById('taskAssignee').value || null,
+    due_date: document.getElementById('taskDueDate').value || null,
+    due_time: document.getElementById('taskDueTime').value || null,
+    is_urgent: document.getElementById('taskUrgent').checked,
+    visibility: 'studio'
+  };
+
+  if (editingTaskId) {
+    await sb.from('tasks').update(payload).eq('id', editingTaskId);
+    showToast('Impegno aggiornato ✓', 'success');
+  } else {
+    payload.created_by = currentUser.id;
+    await sb.from('tasks').insert(payload);
+    showToast('Impegno creato ✓', 'success');
+  }
+
+  btn.textContent = 'Salva Impegno';
+  btn.disabled = false;
+  closeTaskModal();
+
+  if (currentPage === 'oggi') await loadTodayPage();
+  else if (currentPage === 'studio') await loadStudioPage();
+  else if (currentPage === 'settimana') await loadWeekPage();
+}
+
+// ============================================================
+// MODAL RICORRENTE
+// ============================================================
+function openNewRecurringModal() {
+  document.getElementById('recTitle').value = '';
+  document.getElementById('recNotes').value = '';
+  document.getElementById('recUrgent').checked = false;
+  document.getElementById('recFrequency').value = 'monthly';
+  updateRecurringFields();
+
+  populateCategorySelect('recCategory');
+  populateAssigneeSelect('recAssignee');
+
+  document.getElementById('recurringModal').classList.add('open');
+}
+
+function closeRecurringModal() {
+  document.getElementById('recurringModal').classList.remove('open');
+}
+
+function updateRecurringFields() {
+  const freq = document.getElementById('recFrequency').value;
+  document.getElementById('recWeeklyField').style.display = freq === 'weekly' ? 'block' : 'none';
+  document.getElementById('recMonthlyField').style.display = freq === 'monthly' ? 'flex' : 'none';
+  document.getElementById('recYearlyField').style.display = freq === 'yearly' ? 'flex' : 'none';
+}
+
+async function saveRecurring() {
+  const title = document.getElementById('recTitle').value.trim();
+  if (!title) { showToast('Inserisci un titolo', 'error'); return; }
+
+  const freq = document.getElementById('recFrequency').value;
+  const payload = {
+    title,
+    category_id: document.getElementById('recCategory').value || null,
+    assigned_to: document.getElementById('recAssignee').value || null,
+    created_by: currentUser.id,
+    frequency: freq,
+    due_time: document.getElementById('recDueTime').value || null,
+    is_urgent: document.getElementById('recUrgent').checked,
+    notes: document.getElementById('recNotes').value.trim() || null,
+    visibility: 'studio',
+    day_of_week: freq === 'weekly' ? parseInt(document.getElementById('recDayOfWeek').value) : null,
+    day_of_month: ['monthly','yearly'].includes(freq) ? parseInt(document.getElementById(freq === 'monthly' ? 'recDayOfMonth' : 'recYearlyDay').value) : null,
+    month_of_year: freq === 'yearly' ? parseInt(document.getElementById('recMonth').value) : null
+  };
+
+  const { error } = await sb.from('recurring_templates').insert(payload);
+  if (error) { showToast('Errore nel salvataggio', 'error'); return; }
+
+  showToast('Attività ricorrente creata ✓', 'success');
+  closeRecurringModal();
+  await loadRecurringPage();
+}
+
+// ============================================================
+// MODAL CATEGORIA
+// ============================================================
+function openCategoryModal() {
+  document.getElementById('catName').value = '';
+  document.getElementById('catColor').value = '#1e3a5f';
+  document.getElementById('catIcon').value = '';
+  document.getElementById('categoryModal').classList.add('open');
+}
+
+function closeCategoryModal() {
+  document.getElementById('categoryModal').classList.remove('open');
+}
+
+async function saveCategory() {
+  const name = document.getElementById('catName').value.trim();
+  if (!name) { showToast('Inserisci un nome', 'error'); return; }
+
+  await sb.from('categories').insert({
+    name,
+    color: document.getElementById('catColor').value,
+    icon: document.getElementById('catIcon').value || '📋',
+    is_global: false,
+    created_by: currentUser.id
+  });
+
+  await loadCategories();
+  closeCategoryModal();
+  await loadCategoriesPage();
+  showToast('Categoria aggiunta ✓', 'success');
+}
+
+// ============================================================
+// HELPERS SELECT
+// ============================================================
+function populateCategorySelect(selectId, selectedId = '') {
+  const sel = document.getElementById(selectId);
+  sel.innerHTML = '<option value="">— Seleziona categoria —</option>' +
+    categories.map(c => `<option value="${c.id}" ${c.id === selectedId ? 'selected' : ''}>${c.icon} ${escHtml(c.name)}</option>`).join('');
+}
+
+function populateAssigneeSelect(selectId, selectedId = '') {
+  const sel = document.getElementById(selectId);
+  sel.innerHTML = '<option value="">Studio (visibile a tutti)</option>' +
+    allProfiles.map(p => `<option value="${p.id}" ${p.id === selectedId ? 'selected' : ''}>${p.display_name || p.full_name}</option>`).join('');
+}
+
+// ============================================================
+// AUTH
+// ============================================================
+async function handleLogout() {
+  await sb.auth.signOut();
+  window.location.href = 'index.html';
+}
+
+// ============================================================
+// SIDEBAR MOBILE
+// ============================================================
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  const ov = document.getElementById('mobileOverlay');
+  sb.classList.toggle('open');
+  ov.style.display = sb.classList.contains('open') ? 'block' : 'none';
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('mobileOverlay').style.display = 'none';
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+function showToast(msg, type = 'info') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = msg;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 3500);
+}
+
+// ============================================================
+// DATE UTILITIES
+// ============================================================
+function formatDate(d) {
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function formatDateIt(d) {
+  return `${d.getDate()} ${MONTHS_IT[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function addDays(d, n) {
+  const r = new Date(d); r.setDate(r.getDate() + n); return r;
+}
+
+function startOfWeek(d) {
+  const r = new Date(d);
+  const dow = r.getDay(); // 0=Dom
+  const diff = dow === 0 ? -6 : 1 - dow; // Lunedì come inizio
+  r.setDate(r.getDate() + diff);
+  return r;
+}
+
+function formatDueLabel(dueDate, dueTime) {
+  if (!dueDate) return '';
+  const d = new Date(dueDate + 'T12:00:00');
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diff = Math.round((d - today) / 86400000);
+
+  let label = '';
+  if (diff === 0) label = 'Oggi';
+  else if (diff === 1) label = 'Domani';
+  else if (diff === -1) label = 'Ieri';
+  else if (diff < 0) label = `${Math.abs(diff)} giorni fa`;
+  else label = `${d.getDate()} ${MONTHS_IT[d.getMonth()]}`;
+
+  if (dueTime) label += ' ' + dueTime.slice(0,5);
+  return label;
+}
+
+function getDueClass(dueDate) {
+  if (!dueDate) return '';
+  const d = new Date(dueDate + 'T12:00:00');
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diff = Math.round((d - today) / 86400000);
+  if (diff < 0) return 'overdue';
+  if (diff === 0) return 'today';
+  return '';
+}
+
+function updateTopbarDate() {
+  const now = new Date();
+  document.getElementById('topbarDate').textContent =
+    `${DAYS_IT[now.getDay()]}, ${now.getDate()} ${MONTHS_IT[now.getMonth()]} ${now.getFullYear()}`;
+}
+
+function escHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Chiudi modal cliccando fuori
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) {
+      overlay.classList.remove('open');
+      editingTaskId = null;
+    }
+  });
+});
+
+// ============================================================
+// START
+// ============================================================
+init();
+</script>
+</body>
+</html>
