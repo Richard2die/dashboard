@@ -1059,6 +1059,17 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
+.stat-card.urgent { cursor: pointer; transition: box-shadow 0.2s, transform 0.15s; }
+.stat-card.urgent:hover { box-shadow: 0 4px 16px rgba(220,38,38,0.15); transform: translateY(-1px); }
+
+.urgent-group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+}
+
 /* ============================================================
    AGENDA GOOGLE CALENDAR
 ============================================================ */
@@ -1396,6 +1407,9 @@ textarea.form-control { resize: vertical; min-height: 80px; }
     <div class="nav-section-label">Impegni</div>
     <button class="nav-item" onclick="showPage('oggi')">
       <span class="nav-icon">📋</span> Oggi
+    </button>
+    <button class="nav-item" onclick="showPage('urgenze')">
+      <span class="nav-icon">🔴</span> Urgenze
       <span class="nav-badge urgent-badge" id="urgentCount" style="display:none">0</span>
     </button>
     <button class="nav-item" onclick="showPage('settimana')">
@@ -1459,10 +1473,10 @@ textarea.form-control { resize: vertical; min-height: 80px; }
           <div class="stat-value" id="statToday">—</div>
           <div class="stat-sub">aperti</div>
         </div>
-        <div class="stat-card urgent">
+        <div class="stat-card urgent" style="cursor:pointer" onclick="document.querySelector('[onclick=\"showPage(\'urgenze\')\"]').click()" title="Visualizza tutte le urgenze">
           <div class="stat-label">🔴 Urgenti</div>
           <div class="stat-value" id="statUrgent">—</div>
-          <div class="stat-sub">da gestire subito</div>
+          <div class="stat-sub">clicca per vedere tutte →</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">In Scadenza</div>
@@ -1526,6 +1540,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
                 Connetti Google Calendar
               </button>
               <button class="btn-gcal-refresh" id="btnGcalRefresh" style="display:none" onclick="gcalLoadToday()" title="Aggiorna">↻</button>
+              <button class="btn-new-event" id="btnChangeCal" style="display:none" onclick="openCalendarPicker()">📅 Calendario ▾</button>
               <button class="btn-new-event" id="btnNewEvent" style="display:none" onclick="openNewEventModal()">＋ Nuovo evento</button>
             </div>
           </div>
@@ -1556,6 +1571,22 @@ textarea.form-control { resize: vertical; min-height: 80px; }
         </div>
       </div>
       <div class="week-grid" id="weekGrid"></div>
+    </div>
+
+    <!-- ========== PAGE: URGENZE ========== -->
+    <div class="page" id="page-urgenze">
+      <div class="section-header">
+        <div>
+          <div class="section-title">🔴 Urgenze Aperte</div>
+          <div class="page-description">Tutti gli impegni urgenti non completati, indipendentemente dalla data</div>
+        </div>
+        <select class="filter-select" onchange="filterUrgentTasks(this.value)" style="padding:8px 14px" id="urgentUserFilter">
+          <option value="all">Tutti gli utenti</option>
+        </select>
+      </div>
+      <div id="urgentTasksList">
+        <div class="loading-overlay"><div class="spinner"></div></div>
+      </div>
     </div>
 
     <!-- ========== PAGE: TUTTO LO STUDIO ========== -->
@@ -2019,6 +2050,7 @@ async function showPage(page) {
 
   const titles = {
     oggi: 'Impegni di Oggi',
+    urgenze: '🔴 Urgenze Aperte',
     settimana: 'Vista Settimanale',
     studio: 'Tutto lo Studio',
     ricorrenti: 'Attività Ricorrenti',
@@ -2034,12 +2066,91 @@ async function showPage(page) {
 
   switch(page) {
     case 'oggi': await loadTodayPage(); break;
+    case 'urgenze': await loadUrgenzePage(); break;
     case 'settimana': await loadWeekPage(); break;
     case 'studio': await loadStudioPage(); break;
     case 'ricorrenti': await loadRecurringPage(); break;
     case 'archivio': await loadArchivePage(); break;
     case 'categorie': await loadCategoriesPage(); break;
   }
+}
+
+// ============================================================
+// PAGE: URGENZE
+// ============================================================
+async function loadUrgenzePage() {
+  // Popola filtro utenti
+  const sel = document.getElementById('urgentUserFilter');
+  if (allProfiles.length > 0 && sel.options.length === 1) {
+    allProfiles.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = p.display_name || p.full_name;
+      sel.appendChild(opt);
+    });
+  }
+
+  const { data: tasks } = await sb.from('tasks_detailed')
+    .select('*')
+    .eq('is_completed', false)
+    .eq('is_urgent', true)
+    .order('due_date', { ascending: true, nullsFirst: false })
+    .order('created_at', { ascending: false });
+
+  renderUrgentTasks(tasks || []);
+}
+
+function renderUrgentTasks(tasks) {
+  const container = document.getElementById('urgentTasksList');
+  if (!tasks.length) {
+    container.innerHTML = `<div class="empty-state"><div class="emoji">✅</div><p>Nessuna urgenza aperta — ottimo!</p></div>`;
+    return;
+  }
+
+  // Raggruppa: scadute / oggi / future / senza data
+  const today = formatDate(new Date());
+  const groups = { scadute: [], oggi: [], future: [], nodate: [] };
+
+  tasks.forEach(t => {
+    if (!t.due_date) groups.nodate.push(t);
+    else if (t.due_date < today) groups.scadute.push(t);
+    else if (t.due_date === today) groups.oggi.push(t);
+    else groups.future.push(t);
+  });
+
+  const groupLabels = {
+    scadute: { label: '⚠️ Scadute', color: '#dc2626' },
+    oggi:    { label: '🔴 In scadenza oggi', color: '#ea580c' },
+    future:  { label: '📅 Prossime scadenze', color: '#1e3a5f' },
+    nodate:  { label: '📋 Senza data', color: '#64748b' }
+  };
+
+  let html = '';
+  ['scadute','oggi','future','nodate'].forEach(key => {
+    const group = groups[key];
+    if (!group.length) return;
+    const { label, color } = groupLabels[key];
+    html += `
+    <div style="margin-bottom:24px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid ${color}20">
+        <span style="font-size:14px;font-weight:700;color:${color}">${label}</span>
+        <span style="background:${color}15;color:${color};font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px">${group.length}</span>
+      </div>
+      ${group.map(t => renderTaskCard(t, t.created_by === currentUser.id)).join('')}
+    </div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+async function filterUrgentTasks(userId) {
+  const { data: tasks } = await sb.from('tasks_detailed')
+    .select('*')
+    .eq('is_completed', false)
+    .eq('is_urgent', true)
+    .eq(userId !== 'all' ? 'created_by' : 'is_urgent', userId !== 'all' ? userId : true)
+    .order('due_date', { ascending: true, nullsFirst: false });
+  renderUrgentTasks(tasks || []);
 }
 
 // ============================================================
@@ -2765,9 +2876,15 @@ let gcalTokenClient = null;
 let gcalReady = false;
 let gcalConnected = false;
 let gcalEvents = [];
+let selectedCalendarId = 'primary';
+let availableCalendars = [];
 
 function gcalInit() {
   if (!GCAL_CLIENT_ID || GCAL_CLIENT_ID.includes('IL_TUO')) return;
+  if (typeof google === 'undefined' || typeof gapi === 'undefined') {
+    console.warn('Google API non disponibile in questo ambiente.');
+    return;
+  }
   gcalTokenClient = google.accounts.oauth2.initTokenClient({
     client_id: GCAL_CLIENT_ID,
     scope: GCAL_SCOPES,
@@ -2776,6 +2893,7 @@ function gcalInit() {
       gcalConnected = true;
       localStorage.setItem('gcal_connected', '1');
       showGcalConnectedUI();
+      await gcalFetchCalendars();
       await gcalLoadToday();
     }
   });
@@ -2787,8 +2905,7 @@ function gcalInit() {
     gcalReady = true;
     if (localStorage.getItem('gcal_connected') === '1') {
       gcalTokenClient.requestAccessToken({ prompt: '' });
-    }
-  });
+    }  });
 }
 
 function gcalConnect() {
@@ -2796,14 +2913,104 @@ function gcalConnect() {
   gcalTokenClient.requestAccessToken({ prompt: 'consent' });
 }
 
+async function gcalFetchCalendars() {
+  try {
+    const resp = await gapi.client.calendar.calendarList.list({ minAccessRole: 'reader' });
+    availableCalendars = resp.result.items || [];
+    // Ripristina calendario salvato
+    const saved = localStorage.getItem('gcal_selected_id');
+    if (saved && availableCalendars.find(c => c.id === saved)) {
+      selectedCalendarId = saved;
+    }
+    updateCalendarLabel();
+  } catch (e) { console.error('Errore caricamento calendari:', e); }
+}
+
+function updateCalendarLabel() {
+  const btn = document.getElementById('btnChangeCal');
+  if (!btn) return;
+  const cal = availableCalendars.find(c => c.id === selectedCalendarId);
+  const label = cal ? cal.summary : 'Calendario';
+  btn.innerHTML = `📅 ${escHtml(label)} ▾`;
+}
+
+function openCalendarPicker() {
+  if (!availableCalendars.length) { showToast('Nessun calendario disponibile', 'info'); return; }
+
+  // Costruisce dropdown inline
+  const existing = document.getElementById('calPickerDropdown');
+  if (existing) { existing.remove(); return; }
+
+  const btn = document.getElementById('btnChangeCal');
+  const rect = btn.getBoundingClientRect();
+
+  const dropdown = document.createElement('div');
+  dropdown.id = 'calPickerDropdown';
+  dropdown.style.cssText = `
+    position:fixed; top:${rect.bottom + 6}px; right:${window.innerWidth - rect.right}px;
+    background:white; border:1px solid var(--gray-200); border-radius:10px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.12); z-index:999; min-width:240px; overflow:hidden;
+  `;
+
+  const header = document.createElement('div');
+  header.style.cssText = 'padding:10px 14px 8px; font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--gray-400); border-bottom:1px solid var(--gray-100)';
+  header.textContent = 'Seleziona calendario';
+  dropdown.appendChild(header);
+
+  availableCalendars.forEach(cal => {
+    const item = document.createElement('button');
+    item.style.cssText = `
+      display:flex; align-items:center; gap:10px; width:100%; padding:10px 14px;
+      background:${cal.id === selectedCalendarId ? 'var(--gray-50)' : 'white'};
+      border:none; cursor:pointer; font-family:'DM Sans',sans-serif; font-size:13px;
+      color:var(--gray-800); text-align:left; transition:background 0.1s;
+    `;
+    item.onmouseenter = () => item.style.background = 'var(--gray-50)';
+    item.onmouseleave = () => item.style.background = cal.id === selectedCalendarId ? 'var(--gray-50)' : 'white';
+
+    const dot = document.createElement('span');
+    dot.style.cssText = `width:10px;height:10px;border-radius:50%;background:${cal.backgroundColor||'#4285f4'};flex-shrink:0`;
+    const name = document.createElement('span');
+    name.style.flex = '1';
+    name.textContent = cal.summary;
+    const check = document.createElement('span');
+    check.textContent = cal.id === selectedCalendarId ? '✓' : '';
+    check.style.color = 'var(--orange)';
+
+    item.appendChild(dot);
+    item.appendChild(name);
+    item.appendChild(check);
+
+    item.onclick = async () => {
+      selectedCalendarId = cal.id;
+      localStorage.setItem('gcal_selected_id', cal.id);
+      dropdown.remove();
+      updateCalendarLabel();
+      showToast(`Calendario: ${cal.summary}`, 'info');
+      await gcalLoadToday();
+    };
+    dropdown.appendChild(item);
+  });
+
+  document.body.appendChild(dropdown);
+  setTimeout(() => document.addEventListener('click', function handler(e) {
+    if (!dropdown.contains(e.target) && e.target !== btn) {
+      dropdown.remove();
+      document.removeEventListener('click', handler);
+    }
+  }), 100);
+}
+
 function showGcalConnectedUI() {
   const btnConnect = document.getElementById('btnGcalConnect');
   const btnRefresh = document.getElementById('btnGcalRefresh');
   const btnNew = document.getElementById('btnNewEvent');
+  const btnCal = document.getElementById('btnChangeCal');
   const connectState = document.getElementById('agendaConnectState');
   if (btnConnect) btnConnect.style.display = 'none';
   if (btnRefresh) btnRefresh.style.display = 'inline-flex';
   if (btnNew) btnNew.style.display = 'inline-flex';
+  if (btnCal) btnCal.style.display = 'inline-flex';
   if (connectState) connectState.style.display = 'none';
 }
 
@@ -2818,7 +3025,7 @@ async function gcalLoadToday() {
 
   try {
     const resp = await gapi.client.calendar.events.list({
-      calendarId: 'primary',
+      calendarId: selectedCalendarId,
       timeMin: startOfDay, timeMax: endOfDay,
       singleEvents: true, orderBy: 'startTime', maxResults: 50
     });
@@ -2839,7 +3046,7 @@ async function gcalLoadWeek(startDate, endDate) {
   if (!gcalConnected) return [];
   try {
     const resp = await gapi.client.calendar.events.list({
-      calendarId: 'primary',
+      calendarId: selectedCalendarId,
       timeMin: new Date(startDate + 'T00:00:00').toISOString(),
       timeMax: new Date(endDate   + 'T23:59:59').toISOString(),
       singleEvents: true, orderBy: 'startTime', maxResults: 200
@@ -2921,7 +3128,7 @@ async function addTaskToCalendar(taskId) {
   const endTime   = task.due_time ? `${task.due_date}T${addOneHour(task.due_time)}` : `${task.due_date}T10:00:00`;
   try {
     await gapi.client.calendar.events.insert({
-      calendarId: 'primary',
+      calendarId: selectedCalendarId,
       resource: {
         summary: task.title,
         description: task.notes || '',
@@ -2990,7 +3197,7 @@ async function createGcalEvent() {
   }
 
   try {
-    await gapi.client.calendar.events.insert({ calendarId: 'primary', resource });
+    await gapi.client.calendar.events.insert({ calendarId: selectedCalendarId, resource });
     showToast('Evento creato su Google Calendar ✓', 'success');
     closeNewEventModal();
     await gcalLoadToday();
