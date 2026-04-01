@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://apis.google.com/js/api.js"></script>
+<script src="https://accounts.google.com/gsi/client"></script>
 <style>
 :root {
   --navy: #0f2542;
@@ -1058,6 +1060,285 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ============================================================
+   AGENDA GOOGLE CALENDAR
+============================================================ */
+.agenda-panel {
+  background: white;
+  border-radius: 14px;
+  border: 1px solid var(--gray-200);
+  overflow: hidden;
+}
+
+.agenda-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.agenda-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.gcal-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #4285f4;
+}
+
+.agenda-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn-gcal-connect {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  background: #4285f4;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-gcal-connect:hover { background: #3367d6; }
+
+.btn-gcal-refresh {
+  padding: 6px 10px;
+  background: var(--gray-100);
+  border: none;
+  border-radius: 7px;
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--gray-500);
+  transition: all 0.15s;
+}
+
+.btn-gcal-refresh:hover { background: var(--gray-200); }
+
+.btn-new-event {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid #4285f4;
+  border-radius: 7px;
+  color: #4285f4;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-new-event:hover { background: rgba(66,133,244,0.08); }
+
+.agenda-body { padding: 8px 0; max-height: 420px; overflow-y: auto; }
+
+.agenda-connect-state {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--gray-400);
+}
+
+.agenda-connect-state .gcal-logo {
+  font-size: 36px;
+  margin-bottom: 12px;
+}
+
+.agenda-connect-state p {
+  font-size: 13px;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.agenda-empty {
+  padding: 32px 20px;
+  text-align: center;
+  color: var(--gray-400);
+  font-size: 13px;
+}
+
+/* Evento singolo */
+.agenda-event {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--gray-100);
+  transition: background 0.1s;
+  cursor: default;
+}
+
+.agenda-event:last-child { border-bottom: none; }
+.agenda-event:hover { background: var(--gray-50); }
+
+.event-time-col {
+  width: 56px;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.event-time {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-600);
+  line-height: 1.2;
+}
+
+.event-time.allday {
+  font-size: 10px;
+  color: var(--gray-400);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.event-time-end {
+  font-size: 10px;
+  color: var(--gray-400);
+  line-height: 1.2;
+}
+
+.event-color-bar {
+  width: 3px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  align-self: stretch;
+  min-height: 36px;
+  background: var(--event-color, #4285f4);
+}
+
+.event-body { flex: 1; min-width: 0; }
+
+.event-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray-800);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 3px;
+}
+
+.event-location {
+  font-size: 11px;
+  color: var(--gray-400);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.event-actions {
+  opacity: 0;
+  transition: opacity 0.15s;
+  display: flex;
+  gap: 4px;
+}
+
+.agenda-event:hover .event-actions { opacity: 1; }
+
+.btn-event-task {
+  padding: 4px 8px;
+  border-radius: 5px;
+  border: 1px solid var(--gray-200);
+  background: white;
+  font-size: 11px;
+  color: var(--gray-600);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.1s;
+}
+
+.btn-event-task:hover {
+  border-color: var(--orange);
+  color: var(--orange);
+}
+
+/* Indicatore NOW */
+.now-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 20px;
+  margin: 4px 0;
+}
+
+.now-line {
+  flex: 1;
+  height: 1px;
+  background: #ea4335;
+}
+
+.now-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #ea4335;
+  flex-shrink: 0;
+}
+
+.now-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #ea4335;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* Settimana con eventi gcal */
+.week-gcal-event {
+  padding: 4px 6px;
+  border-radius: 5px;
+  margin-bottom: 3px;
+  font-size: 10px;
+  font-weight: 500;
+  color: white;
+  background: var(--event-color, #4285f4);
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Badge "Al calendario" su task card */
+.btn-add-to-cal {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: 5px;
+  border: 1px solid #dadce0;
+  background: white;
+  font-size: 10px;
+  color: #4285f4;
+  cursor: pointer;
+  transition: all 0.1s;
+}
+
+.btn-add-to-cal:hover { background: #e8f0fe; border-color: #4285f4; }
+
+/* ============================================================
+   MODAL NUOVO EVENTO GOOGLE
+============================================================ */
+.gcal-modal {
+  max-width: 500px;
+}
+
+/* ============================================================
    RESPONSIVE
 ============================================================ */
 @media (max-width: 1100px) {
@@ -1113,7 +1394,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 
   <nav class="sidebar-nav">
     <div class="nav-section-label">Impegni</div>
-    <button class="nav-item active" onclick="showPage('oggi')">
+    <button class="nav-item" onclick="showPage('oggi')">
       <span class="nav-icon">📋</span> Oggi
       <span class="nav-badge urgent-badge" id="urgentCount" style="display:none">0</span>
     </button>
@@ -1227,6 +1508,35 @@ textarea.form-control { resize: vertical; min-height: 80px; }
           </div>
           <div id="studioTasksList">
             <div class="loading-overlay"><div class="spinner"></div><span>Caricamento...</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANNELLO AGENDA GOOGLE CALENDAR -->
+      <div style="margin-top:24px">
+        <div class="agenda-panel">
+          <div class="agenda-header">
+            <div class="agenda-title">
+              <div class="gcal-dot"></div>
+              Agenda Google Calendar
+            </div>
+            <div class="agenda-actions" id="agendaActions">
+              <button class="btn-gcal-connect" id="btnGcalConnect" onclick="gcalConnect()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                Connetti Google Calendar
+              </button>
+              <button class="btn-gcal-refresh" id="btnGcalRefresh" style="display:none" onclick="gcalLoadToday()" title="Aggiorna">↻</button>
+              <button class="btn-new-event" id="btnNewEvent" style="display:none" onclick="openNewEventModal()">＋ Nuovo evento</button>
+            </div>
+          </div>
+          <div class="agenda-body" id="agendaBody">
+            <div class="agenda-connect-state" id="agendaConnectState">
+              <div class="gcal-logo">📅</div>
+              <p>Connetti il tuo Google Calendar per visualizzare<br>gli impegni del giorno accanto ai task.</p>
+              <button class="btn-gcal-connect" onclick="gcalConnect()">
+                Connetti Google Calendar
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -1509,6 +1819,62 @@ textarea.form-control { resize: vertical; min-height: 80px; }
   </div>
 </div>
 
+<!-- ============================================================
+     MODAL NUOVO EVENTO GOOGLE CALENDAR
+============================================================ -->
+<div class="modal-overlay" id="gcalEventModal">
+  <div class="modal gcal-modal">
+    <div class="modal-header">
+      <div class="modal-title">Nuovo Evento Google Calendar</div>
+      <button class="modal-close" onclick="closeNewEventModal()">✕</button>
+    </div>
+
+    <div class="form-group">
+      <label>Titolo evento *</label>
+      <input type="text" class="form-control" id="evTitle" placeholder="Es. Udienza Tribunale — Rossi c/ Bianchi">
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Data *</label>
+        <input type="date" class="form-control" id="evDate">
+      </div>
+      <div class="form-group">
+        <label>Orario inizio *</label>
+        <input type="time" class="form-control" id="evStart">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Orario fine</label>
+        <input type="time" class="form-control" id="evEnd">
+      </div>
+      <div class="form-group">
+        <label>Luogo</label>
+        <input type="text" class="form-control" id="evLocation" placeholder="Es. Tribunale di Milano">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Descrizione / Note</label>
+      <textarea class="form-control" id="evDescription" placeholder="Dettagli aggiuntivi..."></textarea>
+    </div>
+
+    <div class="checkbox-row" style="margin-bottom:0">
+      <input type="checkbox" id="evAllDay" onchange="toggleAllDay(this.checked)">
+      <label for="evAllDay">Tutto il giorno</label>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeNewEventModal()">Annulla</button>
+      <button class="btn-save" onclick="createGcalEvent()" id="saveEventBtn" style="background:linear-gradient(135deg,#4285f4,#3367d6)">
+        Crea su Google Calendar
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST CONTAINER -->
 <div class="toast-container" id="toastContainer"></div>
 
@@ -1519,8 +1885,8 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 // ============================================================
 // CONFIGURAZIONE SUPABASE
 // ============================================================
-const SUPABASE_URL = 'https://irwiirstptywhpgiuqrt.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlyd2lpcnN0cHR5d2hwZ2l1cXJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4OTg5MzIsImV4cCI6MjA5MDQ3NDkzMn0.HV9LRV1FGZJ3XgUXPpjE4KbEnda_TsKgvXAOKTp7Q34';
+const SUPABASE_URL = 'https://TUOPROJECT.supabase.co';
+const SUPABASE_ANON_KEY = 'LA_TUA_ANON_KEY';
 
 const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -1846,13 +2212,37 @@ async function loadWeekPage() {
     .lte('due_date', endStr)
     .order('due_time', { ascending: true });
 
+  // Carica eventi Google Calendar della settimana
+  const calEvents = await gcalLoadWeek(startStr, endStr);
+
   const todayStr = formatDate(new Date());
   const grid = document.getElementById('weekGrid');
 
   grid.innerHTML = days.map(day => {
     const dayStr = formatDate(day);
-    const dayTasks = (tasks || []).filter(t => t.due_date === dayStr);
+    const dayTasks  = (tasks || []).filter(t => t.due_date === dayStr);
+    const dayEvents = calEvents.filter(ev => {
+      const evDate = (ev.start.dateTime || ev.start.date).split('T')[0];
+      return evDate === dayStr;
+    });
     const isToday = dayStr === todayStr;
+
+    const taskHtml = dayTasks.map(t => `
+      <div class="week-task-mini ${t.is_urgent ? 'urgent' : ''}" style="--category-color:${t.category_color || '#94a3b8'}" title="${escHtml(t.title)}">
+        ${t.is_urgent ? '🔴 ' : ''}${escHtml(t.title)}
+      </div>`).join('');
+
+    const evHtml = dayEvents.map(ev => {
+      const color = GCAL_COLORS[ev.colorId] || GCAL_COLORS['default'];
+      const time  = ev.start.dateTime
+        ? new Date(ev.start.dateTime).toLocaleTimeString('it-IT', {hour:'2-digit',minute:'2-digit'})
+        : '';
+      return `<div class="week-gcal-event" style="--event-color:${color}" title="${escHtml(ev.summary||'')}">
+        📅 ${time ? time + ' ' : ''}${escHtml(ev.summary || '(Evento)')}
+      </div>`;
+    }).join('');
+
+    const isEmpty = !dayTasks.length && !dayEvents.length;
 
     return `
     <div class="week-day ${isToday ? 'today-col' : ''}">
@@ -1860,11 +2250,7 @@ async function loadWeekPage() {
         <div class="week-day-name">${DAYS_IT[day.getDay()]}</div>
         <div class="week-day-num">${day.getDate()}</div>
       </div>
-      ${dayTasks.length === 0 ? '<div style="text-align:center;padding:20px 0;color:var(--gray-300);font-size:13px">—</div>' :
-        dayTasks.map(t => `
-        <div class="week-task-mini ${t.is_urgent ? 'urgent' : ''}" style="--category-color:${t.category_color || '#94a3b8'}" title="${escHtml(t.title)}">
-          ${t.is_urgent ? '🔴 ' : ''}${escHtml(t.title)}
-        </div>`).join('')}
+      ${isEmpty ? '<div style="text-align:center;padding:20px 0;color:var(--gray-300);font-size:13px">—</div>' : evHtml + taskHtml}
     </div>`;
   }).join('');
 }
@@ -2363,9 +2749,261 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
 });
 
 // ============================================================
+// GOOGLE CALENDAR
+// ============================================================
+const GCAL_CLIENT_ID = '185360488706-ph38hs68rrgmrb6nkav88esv1u0erlo6.apps.googleusercontent.com';
+const GCAL_API_KEY   = 'AIzaSyAaJq6GsCOIzSZIY9quN7gmJdqgW9nZxhc';
+const GCAL_SCOPES    = 'https://www.googleapis.com/auth/calendar';
+
+const GCAL_COLORS = {
+  '1':'#7986cb','2':'#33b679','3':'#8e24aa','4':'#e67c73',
+  '5':'#f6c026','6':'#f5511d','7':'#039be5','8':'#616161',
+  '9':'#3f51b5','10':'#0b8043','11':'#d60000','default':'#4285f4'
+};
+
+let gcalTokenClient = null;
+let gcalReady = false;
+let gcalConnected = false;
+let gcalEvents = [];
+
+function gcalInit() {
+  if (!GCAL_CLIENT_ID || GCAL_CLIENT_ID.includes('IL_TUO')) return;
+  gcalTokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GCAL_CLIENT_ID,
+    scope: GCAL_SCOPES,
+    callback: async (resp) => {
+      if (resp.error) { showToast('Errore accesso Google Calendar', 'error'); return; }
+      gcalConnected = true;
+      localStorage.setItem('gcal_connected', '1');
+      showGcalConnectedUI();
+      await gcalLoadToday();
+    }
+  });
+  gapi.load('client', async () => {
+    await gapi.client.init({
+      apiKey: GCAL_API_KEY,
+      discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest']
+    });
+    gcalReady = true;
+    if (localStorage.getItem('gcal_connected') === '1') {
+      gcalTokenClient.requestAccessToken({ prompt: '' });
+    }
+  });
+}
+
+function gcalConnect() {
+  if (!gcalReady) { showToast('Google API non ancora pronta, riprova tra un momento', 'info'); return; }
+  gcalTokenClient.requestAccessToken({ prompt: 'consent' });
+}
+
+function showGcalConnectedUI() {
+  const btnConnect = document.getElementById('btnGcalConnect');
+  const btnRefresh = document.getElementById('btnGcalRefresh');
+  const btnNew = document.getElementById('btnNewEvent');
+  const connectState = document.getElementById('agendaConnectState');
+  if (btnConnect) btnConnect.style.display = 'none';
+  if (btnRefresh) btnRefresh.style.display = 'inline-flex';
+  if (btnNew) btnNew.style.display = 'inline-flex';
+  if (connectState) connectState.style.display = 'none';
+}
+
+async function gcalLoadToday() {
+  if (!gcalConnected) return;
+  const body = document.getElementById('agendaBody');
+  if (body) body.innerHTML = '<div class="loading-overlay"><div class="spinner"></div><span>Caricamento agenda...</span></div>';
+
+  const now = new Date();
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0).toISOString();
+  const endOfDay   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString();
+
+  try {
+    const resp = await gapi.client.calendar.events.list({
+      calendarId: 'primary',
+      timeMin: startOfDay, timeMax: endOfDay,
+      singleEvents: true, orderBy: 'startTime', maxResults: 50
+    });
+    gcalEvents = resp.result.items || [];
+    renderAgenda(gcalEvents);
+    if (currentPage === 'settimana') await loadWeekPage();
+  } catch (err) {
+    if (body) body.innerHTML = '<div class="agenda-empty">Errore nel caricamento. <a href="#" onclick="gcalLoadToday()">Riprova</a></div>';
+    if (err.status === 401) {
+      gcalConnected = false;
+      localStorage.removeItem('gcal_connected');
+      showToast('Sessione Google scaduta — riconnetti', 'error');
+    }
+  }
+}
+
+async function gcalLoadWeek(startDate, endDate) {
+  if (!gcalConnected) return [];
+  try {
+    const resp = await gapi.client.calendar.events.list({
+      calendarId: 'primary',
+      timeMin: new Date(startDate + 'T00:00:00').toISOString(),
+      timeMax: new Date(endDate   + 'T23:59:59').toISOString(),
+      singleEvents: true, orderBy: 'startTime', maxResults: 200
+    });
+    return resp.result.items || [];
+  } catch (e) { return []; }
+}
+
+function renderAgenda(events) {
+  const body = document.getElementById('agendaBody');
+  if (!body) return;
+  if (!events.length) {
+    body.innerHTML = '<div class="agenda-empty">📭 Nessun evento in agenda per oggi</div>';
+    return;
+  }
+  const now = new Date();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  let nowInserted = false;
+  let html = '';
+
+  events.forEach(ev => {
+    const isAllDay = !ev.start.dateTime;
+    const startDt = new Date(ev.start.dateTime || ev.start.date + 'T00:00:00');
+    const endDt   = new Date(ev.end.dateTime   || ev.end.date   + 'T00:00:00');
+    const evMin   = isAllDay ? -1 : startDt.getHours() * 60 + startDt.getMinutes();
+
+    if (!isAllDay && !nowInserted && evMin > nowMinutes) {
+      html += `<div class="now-indicator"><div class="now-dot"></div><div class="now-line"></div><div class="now-label">Adesso</div></div>`;
+      nowInserted = true;
+    }
+
+    const color = GCAL_COLORS[ev.colorId] || GCAL_COLORS['default'];
+    const location = ev.location ? `<div class="event-location">📍 ${escHtml(ev.location)}</div>` : '';
+    const timeHtml = isAllDay
+      ? `<span class="event-time allday">Tutto il giorno</span>`
+      : `<span class="event-time">${padTime(startDt.getHours())}:${padTime(startDt.getMinutes())}</span>
+         <span class="event-time-end">${padTime(endDt.getHours())}:${padTime(endDt.getMinutes())}</span>`;
+
+    const safeId = escHtml(ev.id);
+    html += `
+    <div class="agenda-event">
+      <div class="event-time-col">${timeHtml}</div>
+      <div class="event-color-bar" style="--event-color:${color}"></div>
+      <div class="event-body">
+        <div class="event-title">${escHtml(ev.summary || '(Senza titolo)')}</div>
+        ${location}
+      </div>
+      <div class="event-actions">
+        <button class="btn-event-task" onclick="createTaskFromEvent('${safeId}')" title="Crea task da questo evento">+ Task</button>
+      </div>
+    </div>`;
+  });
+
+  body.innerHTML = html;
+}
+
+async function createTaskFromEvent(eventId) {
+  const ev = gcalEvents.find(e => e.id === eventId);
+  if (!ev) return;
+  const dueDate = ev.start.dateTime ? ev.start.dateTime.split('T')[0] : ev.start.date;
+  const dueTime = ev.start.dateTime ? ev.start.dateTime.split('T')[1].slice(0,5) : null;
+  document.getElementById('taskTitle').value    = ev.summary || '';
+  document.getElementById('taskNotes').value    = ev.location ? `Luogo: ${ev.location}` : '';
+  document.getElementById('taskDueDate').value  = dueDate;
+  document.getElementById('taskDueTime').value  = dueTime || '';
+  document.getElementById('taskUrgent').checked = false;
+  populateCategorySelect('taskCategory');
+  populateAssigneeSelect('taskAssignee');
+  editingTaskId = null;
+  document.getElementById('taskModalTitle').textContent = 'Nuovo Task da Evento Calendario';
+  document.getElementById('taskModal').classList.add('open');
+}
+
+async function addTaskToCalendar(taskId) {
+  if (!gcalConnected) { showToast('Connetti prima Google Calendar', 'info'); return; }
+  const { data: task } = await sb.from('tasks').select('*').eq('id', taskId).single();
+  if (!task || !task.due_date) { showToast('Il task non ha una data di scadenza', 'error'); return; }
+  const startTime = task.due_time ? `${task.due_date}T${task.due_time}:00` : `${task.due_date}T09:00:00`;
+  const endTime   = task.due_time ? `${task.due_date}T${addOneHour(task.due_time)}` : `${task.due_date}T10:00:00`;
+  try {
+    await gapi.client.calendar.events.insert({
+      calendarId: 'primary',
+      resource: {
+        summary: task.title,
+        description: task.notes || '',
+        start: { dateTime: startTime, timeZone: 'Europe/Rome' },
+        end:   { dateTime: endTime,   timeZone: 'Europe/Rome' }
+      }
+    });
+    showToast('Evento aggiunto a Google Calendar ✓', 'success');
+    if (currentPage === 'oggi') await gcalLoadToday();
+  } catch (e) { showToast('Errore creazione evento', 'error'); }
+}
+
+function addOneHour(timeStr) {
+  const [h, m] = timeStr.split(':').map(Number);
+  return `${padTime((h+1)%24)}:${padTime(m)}:00`;
+}
+
+function padTime(n) { return String(n).padStart(2,'0'); }
+
+function openNewEventModal(prefillTitle, prefillDate, prefillTime) {
+  document.getElementById('evTitle').value       = prefillTitle || '';
+  document.getElementById('evDate').value        = prefillDate  || formatDate(new Date());
+  document.getElementById('evStart').value       = prefillTime  || '';
+  document.getElementById('evEnd').value         = '';
+  document.getElementById('evLocation').value    = '';
+  document.getElementById('evDescription').value = '';
+  document.getElementById('evAllDay').checked    = false;
+  document.getElementById('evStart').disabled    = false;
+  document.getElementById('evEnd').disabled      = false;
+  document.getElementById('gcalEventModal').classList.add('open');
+  setTimeout(() => document.getElementById('evTitle').focus(), 100);
+}
+
+function closeNewEventModal() {
+  document.getElementById('gcalEventModal').classList.remove('open');
+}
+
+function toggleAllDay(checked) {
+  document.getElementById('evStart').disabled = checked;
+  document.getElementById('evEnd').disabled   = checked;
+  if (checked) { document.getElementById('evStart').value = ''; document.getElementById('evEnd').value = ''; }
+}
+
+async function createGcalEvent() {
+  const title  = document.getElementById('evTitle').value.trim();
+  const date   = document.getElementById('evDate').value;
+  const start  = document.getElementById('evStart').value;
+  const end    = document.getElementById('evEnd').value;
+  const loc    = document.getElementById('evLocation').value.trim();
+  const desc   = document.getElementById('evDescription').value.trim();
+  const allDay = document.getElementById('evAllDay').checked;
+
+  if (!title)           { showToast('Inserisci un titolo', 'error'); return; }
+  if (!date)            { showToast('Inserisci una data', 'error'); return; }
+  if (!allDay && !start){ showToast("Inserisci l'orario di inizio", 'error'); return; }
+
+  const btn = document.getElementById('saveEventBtn');
+  btn.textContent = 'Creazione...'; btn.disabled = true;
+
+  const resource = { summary: title, description: desc || undefined, location: loc || undefined };
+  if (allDay) {
+    resource.start = { date }; resource.end = { date };
+  } else {
+    resource.start = { dateTime: `${date}T${start}:00`, timeZone: 'Europe/Rome' };
+    resource.end   = { dateTime: end ? `${date}T${end}:00` : `${date}T${addOneHour(start)}`, timeZone: 'Europe/Rome' };
+  }
+
+  try {
+    await gapi.client.calendar.events.insert({ calendarId: 'primary', resource });
+    showToast('Evento creato su Google Calendar ✓', 'success');
+    closeNewEventModal();
+    await gcalLoadToday();
+  } catch (e) { showToast("Errore nella creazione dell'evento", 'error'); }
+
+  btn.textContent = 'Crea su Google Calendar'; btn.disabled = false;
+}
+
+// ============================================================
 // START
 // ============================================================
 init();
+gcalInit();
 </script>
 </body>
 </html>
