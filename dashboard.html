@@ -1808,7 +1808,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
         <div class="stat-card">
           <div class="stat-label">Impegni Oggi</div>
           <div class="stat-value" id="statToday">—</div>
-          <div class="stat-sub">aperti</div>
+          <div class="stat-sub">in scadenza oggi</div>
         </div>
         <div class="stat-card urgent" style="cursor:pointer" onclick="document.querySelector('[onclick=\"showPage(\'urgenze\')\"]').click()" title="Visualizza tutte le urgenze">
           <div class="stat-label">🔴 Urgenti</div>
@@ -1828,15 +1828,17 @@ textarea.form-control { resize: vertical; min-height: 80px; }
       </div>
 
       <div class="tasks-layout" id="todayLayout">
-        <!-- Miei impegni oggi -->
+        <!-- Miei impegni aperti -->
         <div>
           <div class="column-header">
-            <div class="column-title">I Miei Impegni</div>
+            <div class="column-title">I Miei Impegni Aperti</div>
             <span class="column-count" id="myTodayCount">0</span>
             <div class="column-filter">
               <select class="filter-select" onchange="filterMyTasks(this.value)" id="myFilterSelect">
                 <option value="all">Tutti</option>
                 <option value="urgent">Solo urgenti</option>
+                <option value="overdue">Scaduti</option>
+                <option value="today">Solo oggi</option>
               </select>
             </div>
           </div>
@@ -1845,15 +1847,17 @@ textarea.form-control { resize: vertical; min-height: 80px; }
           </div>
         </div>
 
-        <!-- Impegni studio oggi -->
+        <!-- Impegni studio aperti -->
         <div>
           <div class="column-header">
-            <div class="column-title">Studio — Impegni del Giorno</div>
+            <div class="column-title">Studio — Impegni Aperti</div>
             <span class="column-count" id="studioTodayCount">0</span>
             <div class="column-filter">
               <select class="filter-select" onchange="filterStudioTasks(this.value)" id="studioFilterSelect">
                 <option value="all">Tutti</option>
                 <option value="urgent">Solo urgenti</option>
+                <option value="overdue">Scaduti</option>
+                <option value="today">Solo oggi</option>
               </select>
             </div>
           </div>
@@ -2577,23 +2581,23 @@ async function filterUrgentTasks(userId) {
 async function loadTodayPage() {
   const today = formatDate(new Date());
 
-  // Impegni miei oggi
+  // Tutti i miei task aperti (scaduti + oggi + futuri + senza data)
   const { data: myTasks } = await sb.from('tasks_detailed')
     .select('*')
     .eq('is_completed', false)
     .eq('created_by', currentUser.id)
-    .eq('due_date', today)
     .order('is_urgent', { ascending: false })
+    .order('due_date', { ascending: true, nullsFirst: false })
     .order('due_time', { ascending: true, nullsFirst: false });
 
-  // Impegni studio oggi (esclusi i miei personali altrui)
+  // Tutti i task studio aperti degli altri collaboratori
   const { data: studioTasks } = await sb.from('tasks_detailed')
     .select('*')
     .eq('is_completed', false)
     .eq('visibility', 'studio')
     .neq('created_by', currentUser.id)
-    .eq('due_date', today)
-    .order('is_urgent', { ascending: false });
+    .order('is_urgent', { ascending: false })
+    .order('due_date', { ascending: true, nullsFirst: false });
 
   // Stats
   const { data: urgentAll } = await sb.from('tasks').select('id').eq('is_completed', false).eq('is_urgent', true);
@@ -2605,7 +2609,11 @@ async function loadTodayPage() {
   const { data: completedWeek } = await sb.from('tasks').select('id').eq('is_completed', true)
     .gte('completed_at', weekStart + 'T00:00:00');
 
-  document.getElementById('statToday').textContent = (myTasks?.length || 0) + (studioTasks?.length || 0);
+  // Conta task in scadenza oggi (per la stat card)
+  const todayCount = (myTasks || []).filter(t => t.due_date === today).length +
+                     (studioTasks || []).filter(t => t.due_date === today).length;
+
+  document.getElementById('statToday').textContent = todayCount;
   document.getElementById('statUrgent').textContent = urgentAll?.length || 0;
   document.getElementById('statDueSoon').textContent = dueSoon?.length || 0;
   document.getElementById('statCompleted').textContent = completedWeek?.length || 0;
@@ -2643,7 +2651,7 @@ function renderTaskCard(task, isOwner) {
   const recurringIcon = task.recurring_template_id ? '<span class="recurring-indicator" title="Ricorrente">🔄</span>' : '';
 
   return `
-  <div class="task-card ${task.is_urgent ? 'urgent-card' : ''}" id="task-${task.id}" style="--category-color:${catColor}">
+  <div class="task-card ${task.is_urgent ? 'urgent-card' : ''}" id="task-${task.id}" style="--category-color:${catColor}" data-due="${task.due_date || ''}">
     <div class="task-top">
       ${isOwner ? `<div class="task-checkbox" onclick="completeTask('${task.id}')" title="Segna come completato">✓</div>` : '<div style="width:18px"></div>'}
       <div class="task-title">${escHtml(task.title)}</div>
@@ -2705,17 +2713,25 @@ async function deleteTask(taskId) {
 // FILTRI
 // ============================================================
 function filterMyTasks(value) {
+  const today = formatDate(new Date());
   const cards = document.querySelectorAll('#myTasksList .task-card');
   cards.forEach(card => {
-    if (value === 'urgent') card.style.display = card.classList.contains('urgent-card') ? '' : 'none';
+    const due = card.dataset.due || '';
+    if (value === 'urgent')  card.style.display = card.classList.contains('urgent-card') ? '' : 'none';
+    else if (value === 'overdue') card.style.display = (due && due < today) ? '' : 'none';
+    else if (value === 'today')   card.style.display = due === today ? '' : 'none';
     else card.style.display = '';
   });
 }
 
 function filterStudioTasks(value) {
+  const today = formatDate(new Date());
   const cards = document.querySelectorAll('#studioTasksList .task-card');
   cards.forEach(card => {
-    if (value === 'urgent') card.style.display = card.classList.contains('urgent-card') ? '' : 'none';
+    const due = card.dataset.due || '';
+    if (value === 'urgent')  card.style.display = card.classList.contains('urgent-card') ? '' : 'none';
+    else if (value === 'overdue') card.style.display = (due && due < today) ? '' : 'none';
+    else if (value === 'today')   card.style.display = due === today ? '' : 'none';
     else card.style.display = '';
   });
 }
